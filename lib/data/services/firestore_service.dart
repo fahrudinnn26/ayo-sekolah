@@ -4,6 +4,7 @@ import 'package:ayo_sekolah/data/models/school_model.dart';
 import 'package:ayo_sekolah/data/services/sample_schools_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 /// Layanan akses data Cloud Firestore untuk koleksi `schools` dan
 /// `ppdb_registrations`, dilengkapi mode fallback lokal (in-memory) yang aman
@@ -29,6 +30,7 @@ class FirestoreService {
       <RegistrationDraftModel>[];
   bool _localSchoolsSeeded = false;
   int _localIdCounter = 0;
+  Future<void>? _pendingCloudSeed;
 
   /// Bernilai `true` jika layanan sedang berjalan pada mode fallback lokal
   /// (misalnya saat `Firebase.apps.isEmpty` atau `forceLocalFallback` aktif).
@@ -39,6 +41,21 @@ class FirestoreService {
       return Firebase.apps.isEmpty;
     } catch (_) {
       return true;
+    }
+  }
+
+  /// Bernilai `true` apabila layanan aktif terhubung ke Cloud Firestore
+  /// (bukan mode fallback lokal in-memory).
+  bool get isCloudConnected => !isUsingLocalFallback;
+
+  /// Mengembalikan `projectId` Firebase aktif jika tersedia.
+  String? get firebaseProjectId {
+    if (isUsingLocalFallback) return null;
+    try {
+      if (Firebase.apps.isEmpty) return null;
+      return Firebase.app().options.projectId;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -63,12 +80,34 @@ class FirestoreService {
       return;
     }
 
+    if (_pendingCloudSeed != null) {
+      return _pendingCloudSeed!;
+    }
+
+    final Future<void> seedTask = _seedSampleSchoolsToCloud(db);
+    _pendingCloudSeed = seedTask;
+    try {
+      await seedTask;
+    } finally {
+      if (identical(_pendingCloudSeed, seedTask)) {
+        _pendingCloudSeed = null;
+      }
+    }
+  }
+
+  Future<void> _seedSampleSchoolsToCloud(FirebaseFirestore db) async {
     final CollectionReference<Map<String, dynamic>> colRef =
         db.collection(schoolsCollection);
     final QuerySnapshot<Map<String, dynamic>> existing =
         await colRef.limit(1).get();
 
-    if (existing.docs.isNotEmpty) return;
+    if (existing.docs.isNotEmpty) {
+      debugPrint(
+        'Koleksi Firestore "$schoolsCollection" sudah berisi data. '
+        'Seeding otomatis dilewati.',
+      );
+      return;
+    }
 
     final WriteBatch batch = db.batch();
     for (final SchoolModel school in SampleSchoolsData.schools) {
@@ -77,6 +116,10 @@ class FirestoreService {
       batch.set(docRef, school.toMap());
     }
     await batch.commit();
+    debugPrint(
+      'Seeding otomatis ${SampleSchoolsData.schools.length} data sekolah '
+      'Bandar Lampung ke koleksi "$schoolsCollection" Cloud Firestore berhasil.',
+    );
   }
 
   /// Mengambil seluruh daftar sekolah dari koleksi `schools`.

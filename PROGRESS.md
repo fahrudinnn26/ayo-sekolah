@@ -10,8 +10,9 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 - [x] **Tahap 2: Logika Inti, Services, Data Sampel Sekolah Bandar Lampung, & State Provider** (Selesai)
 - [x] **Tahap 3: Konfigurasi `main.dart`, Navigasi Utama, Reusable Widgets, Layar Beranda & Radar Sekolah, & Detail Profil Sekolah** (Selesai)
 - [x] **Tahap 4: Layar Komparasi & Smart Pathway Advisor, Progress Stepper, Layar PPDB Sandbox (CRUD Penuh), & Integrasi Navigasi Antar Layar** (Selesai)
+- [x] **Tahap 5: Integrasi Gradle Firebase Android, Seeding Otomatis Cloud Firestore, & Indikator Status Koneksi Cloud** (Selesai)
 
-> **Catatan Progres Tahap 4:** Seluruh 4 layar utama beserta alur integrasi antar layar (Beranda -> Komparasi, Detail Sekolah -> Simulasi PPDB Sandbox pre-selected, serta Advisor -> Simulasi Sandbox) telah diimplementasikan penuh dan terverifikasi tanpa error maupun warning.
+> **Catatan Progres Tahap 5:** File `android/app/google-services.json` (`com.ayosekolah.ayo_sekolah`, project `ayo-sekolah-908f4`) telah terintegrasi penuh melalui plugin Gradle Google Services (`4.4.4`), `minSdk` disesuaikan ke `24` sesuai persyaratan `firebase_core` & `cloud_firestore`, seeding otomatis 10 sekolah Bandar Lampung ke koleksi `schools` telah diperkuat, dan indikator status koneksi (`Cloud Terhubung` hijau / `Mode Lokal` abu-abu) telah dipasang di Beranda & PPDB Sandbox.
 
 ---
 
@@ -150,6 +151,41 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 
 ---
 
+## Rincian Pekerjaan Tahap 5
+
+### 1. Integrasi Gradle Firebase Android
+- **`android/settings.gradle.kts`** *(Dimodifikasi)*
+  - Menambahkan deklarasi plugin `id("com.google.gms.google-services") version "4.4.4" apply false` yang kompatibel dengan Android Gradle Plugin `9.3.1` dan Gradle `9.5.0`.
+- **`android/app/build.gradle.kts`** *(Dimodifikasi)*
+  - Memverifikasi `applicationId = "com.ayosekolah.ayo_sekolah"` sesuai persis dengan `package_name` pada `android/app/google-services.json`.
+  - Menerapkan plugin `id("com.google.gms.google-services")` pada modul `:app`.
+  - Menyesuaikan `minSdk = 24` agar memenuhi kebutuhan SDK minimal `firebase_core` (`^5.2.0`) dan `cloud_firestore` (`^7.2.0`) saat manifest merge Android.
+
+### 2. Inisialisasi Firebase & Seeding Otomatis Cloud Firestore
+- **`lib/main.dart`** *(Dimodifikasi)*
+  - Memastikan `Firebase.initializeApp()` berjalan lancar saat aplikasi dibuka di Android dengan pencatatan `projectId` aktif (`ayo-sekolah-908f4`) serta tetap aman bila konfigurasi tidak tersedia.
+  - Memicu pemeriksaan & seeding awal koleksi `schools` (`FirestoreService.seedSampleSchoolsIfEmpty()`) tanpa menghambat rendering layar awal saat terhubung ke Cloud Firestore.
+- **`lib/data/services/firestore_service.dart`** *(Dimodifikasi)*
+  - Menambahkan getter `isCloudConnected` dan `firebaseProjectId` untuk memudahkan pemeriksaan status koneksi di lapisan state dan UI.
+  - Memperkuat `seedSampleSchoolsIfEmpty()` dengan guard konkurensi (*single-flight*) agar pemanggilan bersamaan saat startup dan pemuatan `SchoolProvider` tidak menumpuk ketika melakukan seeding otomatis 10 data sekolah Bandar Lampung dari `SampleSchoolsData.schools` ke koleksi `schools` Cloud Firestore.
+- **`lib/logic/providers/school_provider.dart` & `lib/logic/providers/sandbox_provider.dart`** *(Dimodifikasi)*
+  - Mengekspos getter `isCloudConnected` dan `firebaseProjectId` dari `FirestoreService`.
+
+### 3. Indikator Status Koneksi Cloud di UI
+- **`lib/presentation/widgets/cloud_status_badge.dart`** *(Baru)*
+  - Komponen chip/badge ringkas dan rapi yang menampilkan **"Cloud Terhubung"** (warna hijau, ikon `cloud_done_rounded`) saat aplikasi terhubung ke Cloud Firestore sungguhan, atau **"Mode Lokal"** (warna abu-abu, ikon `cloud_off_rounded`) saat berjalan pada mode fallback lokal, lengkap dengan `Tooltip` dan `Semantics`.
+- **`lib/presentation/screens/home_screen.dart`** *(Dimodifikasi)*
+  - Menampilkan `CloudStatusBadge` di sebelah badge status lokasi pada kartu lokasi aktif di bagian atas halaman **Beranda**.
+- **`lib/presentation/screens/tracking_sandbox_screen.dart`** *(Dimodifikasi)*
+  - Memperbarui banner edukatif **PPDB Sandbox** agar selalu menampilkan `CloudStatusBadge` (*Cloud Terhubung* hijau atau *Mode Lokal* abu-abu).
+
+### 4. Pengujian & Verifikasi Build
+- **`test/widget_test.dart`** *(Dimodifikasi)*
+  - Menambahkan verifikasi `CloudStatusBadge` pada layar Beranda dan PPDB Sandbox serta pengujian khusus tampilan warna dan label **"Cloud Terhubung"** (hijau) dan **"Mode Lokal"** (abu-abu).
+- Memverifikasi task Gradle `:app:processDebugGoogleServices` dan `:app:processDebugMainManifest` berhasil tanpa galat.
+
+---
+
 ## Daftar File Baru & Termodifikasi
 
 | Tahap | Status | Path File | Deskripsi |
@@ -160,7 +196,7 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 1 | Baru | `lib/core/constants/ppdb_constants.dart` | Aturan jarak zonasi, jalur PPDB, status seleksi, & koordinat fallback Bandar Lampung |
 | Tahap 1 | Baru | `lib/data/models/school_model.dart` | Model data sekolah + serialisasi Firestore |
 | Tahap 1 | Baru | `lib/data/models/registration_draft_model.dart` | Model data draf pendaftaran simulasi + serialisasi Firestore |
-| Tahap 1–4 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek Tahap 1–4 |
+| Tahap 1–5 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek Tahap 1–5 |
 | Tahap 2 | Baru | `lib/core/utils/haversine_calculator.dart` | Perhitungan jarak Haversine (meter/km) & evaluasi status zonasi |
 | Tahap 2 | Baru | `lib/core/utils/smart_pathway_advisor.dart` | Algoritma rekomendasi 4 jalur PPDB & rincian peluang Bahasa Indonesia |
 | Tahap 2 | Baru | `lib/data/services/sample_schools_data.dart` | 10 data sampel sekolah negeri Bandar Lampung (SD/SMP/SMA/SMK) |
@@ -183,6 +219,16 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 4 | Dimodifikasi | `lib/presentation/screens/main_navigation_screen.dart` | Integrasi Tab 2 (`CompareAdvisorScreen`), Tab 3 (`TrackingSandboxScreen`), & alur lintas layar |
 | Tahap 4 | Dimodifikasi | `lib/presentation/screens/school_detail_screen.dart` | Integrasi tombol "Simulasi Daftar di Sekolah Ini" membuka form Sandbox dengan sekolah pre-selected |
 | Tahap 4 | Dimodifikasi | `test/widget_test.dart` | Widget test end-to-end Tahap 1–4 (Komparasi, Smart Advisor, Validasi NISN, CRUD Sandbox, Stepper) |
+| Tahap 5 | Dimodifikasi | `android/settings.gradle.kts` | Menambahkan plugin `com.google.gms.google-services` versi `4.4.4` |
+| Tahap 5 | Dimodifikasi | `android/app/build.gradle.kts` | Menerapkan plugin Google Services, verifikasi `applicationId`, & `minSdk = 24` |
+| Tahap 5 | Dimodifikasi | `lib/main.dart` | Inisialisasi aman `Firebase.initializeApp()` dengan log `projectId` & pemicu seeding awal `schools` |
+| Tahap 5 | Dimodifikasi | `lib/data/services/firestore_service.dart` | Getter `isCloudConnected`/`firebaseProjectId` & guard konkurensi seeding otomatis 10 sekolah |
+| Tahap 5 | Dimodifikasi | `lib/logic/providers/school_provider.dart` | Mengekspos `isCloudConnected` dan `firebaseProjectId` ke UI Beranda |
+| Tahap 5 | Dimodifikasi | `lib/logic/providers/sandbox_provider.dart` | Mengekspos `isCloudConnected` dan `firebaseProjectId` ke UI PPDB Sandbox |
+| Tahap 5 | Baru | `lib/presentation/widgets/cloud_status_badge.dart` | Chip/badge status koneksi "Cloud Terhubung" (hijau) / "Mode Lokal" (abu-abu) |
+| Tahap 5 | Dimodifikasi | `lib/presentation/screens/home_screen.dart` | Menampilkan `CloudStatusBadge` pada header lokasi aktif di Beranda |
+| Tahap 5 | Dimodifikasi | `lib/presentation/screens/tracking_sandbox_screen.dart` | Menampilkan `CloudStatusBadge` pada banner edukatif PPDB Sandbox |
+| Tahap 5 | Dimodifikasi | `test/widget_test.dart` | Verifikasi `CloudStatusBadge` untuk mode lokal dan mode cloud terhubung |
 
 ---
 

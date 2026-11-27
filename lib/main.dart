@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ayo_sekolah/core/constants/app_theme.dart';
 import 'package:ayo_sekolah/data/services/firestore_service.dart';
 import 'package:ayo_sekolah/data/services/location_service.dart';
@@ -11,19 +13,37 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeFirebaseSafely();
-  runApp(const AyoSekolahApp());
+
+  final FirestoreService firestoreService = FirestoreService();
+  if (firestoreService.isCloudConnected) {
+    unawaited(
+      firestoreService.seedSampleSchoolsIfEmpty().catchError((Object error) {
+        debugPrint(
+          'Seeding awal koleksi schools saat startup tertunda '
+          '(akan dicoba ulang saat memuat daftar sekolah): $error',
+        );
+      }),
+    );
+  }
+
+  runApp(AyoSekolahApp(firestoreService: firestoreService));
 }
 
 /// Menginisialisasi Firebase secara aman dalam blok `try-catch`.
 ///
-/// Jika `google-services.json` belum terpasang atau konfigurasi Firebase belum
-/// tersedia, aplikasi tetap berjalan normal menggunakan mode fallback lokal
-/// in-memory di [FirestoreService].
+/// Pada Android dengan `android/app/google-services.json` yang terkonfigurasi,
+/// `Firebase.initializeApp()` otomatis menghubungkan aplikasi ke proyek
+/// Firebase. Jika konfigurasi belum tersedia (misalnya saat pengujian lokal),
+/// aplikasi tetap berjalan normal menggunakan mode fallback in-memory di
+/// [FirestoreService].
 Future<void> _initializeFirebaseSafely() async {
   try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp();
-    }
+    final FirebaseApp app = Firebase.apps.isEmpty
+        ? await Firebase.initializeApp()
+        : Firebase.app();
+    debugPrint(
+      'Firebase berhasil diinisialisasi (projectId: ${app.options.projectId}).',
+    );
   } catch (error) {
     debugPrint(
       'Inisialisasi Firebase dilewati (berjalan pada mode fallback lokal): $error',

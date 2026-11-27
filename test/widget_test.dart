@@ -1,8 +1,10 @@
+import 'package:ayo_sekolah/core/constants/app_theme.dart';
 import 'package:ayo_sekolah/data/services/firestore_service.dart';
 import 'package:ayo_sekolah/data/services/location_service.dart';
 import 'package:ayo_sekolah/main.dart';
 import 'package:ayo_sekolah/presentation/screens/compare_advisor_screen.dart';
 import 'package:ayo_sekolah/presentation/screens/tracking_sandbox_screen.dart';
+import 'package:ayo_sekolah/presentation/widgets/cloud_status_badge.dart';
 import 'package:ayo_sekolah/presentation/widgets/sandbox_stepper_widget.dart';
 import 'package:ayo_sekolah/presentation/widgets/school_card.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +43,14 @@ void main() {
       expect(find.text('Komparasi'), findsOneWidget);
       expect(find.text('PPDB Sandbox'), findsOneWidget);
       expect(find.text('Fallback Kecamatan'), findsOneWidget);
+      expect(find.byKey(const Key('home_cloud_status_badge')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('home_cloud_status_badge')),
+          matching: find.text('Mode Lokal'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('10 sekolah ditemukan'), findsOneWidget);
 
       // 2. Verifikasi ModalBottomSheet pilih kecamatan manual
@@ -192,8 +202,15 @@ void main() {
       await tester.tap(submitDraftButton);
       await tester.pumpAndSettle();
 
-      // 9. Verifikasi Read: banner edukatif, data siswa, stepper, checklist berkas, & portal
+      // 9. Verifikasi Read: banner edukatif, status koneksi, data siswa, stepper, checklist berkas, & portal
       expect(find.text('PPDB Sandbox (Simulasi Mandiri)'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('sandbox_cloud_status_badge')),
+          matching: find.text('Mode Lokal'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Budi Santoso'), findsOneWidget);
       expect(find.text('NISN: 0091234567'), findsOneWidget);
       expect(find.byType(SandboxStepperWidget), findsOneWidget);
@@ -263,6 +280,50 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Hapus'));
       await tester.pumpAndSettle();
       expect(find.text('Belum Ada Draf Simulasi'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'CloudStatusBadge menampilkan status Cloud Terhubung (hijau) dan Mode Lokal (abu-abu)',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: Column(
+              children: <Widget>[
+                CloudStatusBadge(
+                  key: Key('cloud_connected_badge'),
+                  isCloudConnected: true,
+                  projectId: 'ayo-sekolah-908f4',
+                ),
+                CloudStatusBadge(
+                  key: Key('local_mode_badge'),
+                  isCloudConnected: false,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final Finder cloudTextFinder = find.descendant(
+        of: find.byKey(const Key('cloud_connected_badge')),
+        matching: find.text('Cloud Terhubung'),
+      );
+      final Finder localTextFinder = find.descendant(
+        of: find.byKey(const Key('local_mode_badge')),
+        matching: find.text('Mode Lokal'),
+      );
+
+      expect(cloudTextFinder, findsOneWidget);
+      expect(localTextFinder, findsOneWidget);
+
+      final Text cloudText = tester.widget<Text>(cloudTextFinder);
+      final Text localText = tester.widget<Text>(localTextFinder);
+
+      expect(cloudText.style?.color, AppTheme.statusAman);
+      expect(localText.style?.color, AppTheme.textSecondary);
     },
   );
 }

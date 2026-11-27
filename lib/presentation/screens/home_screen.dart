@@ -4,6 +4,7 @@ import 'package:ayo_sekolah/data/models/school_model.dart';
 import 'package:ayo_sekolah/data/services/location_service.dart';
 import 'package:ayo_sekolah/logic/providers/school_provider.dart';
 import 'package:ayo_sekolah/presentation/screens/school_detail_screen.dart';
+import 'package:ayo_sekolah/presentation/widgets/cloud_status_badge.dart';
 import 'package:ayo_sekolah/presentation/widgets/school_card.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -473,7 +474,10 @@ class _ActiveLocationCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Row(
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: <Widget>[
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -492,6 +496,11 @@ class _ActiveLocationCard extends StatelessWidget {
                                 color: statusFg,
                               ),
                             ),
+                          ),
+                          CloudStatusBadge(
+                            key: const Key('home_cloud_status_badge'),
+                            isCloudConnected: provider.isCloudConnected,
+                            projectId: provider.firebaseProjectId,
                           ),
                         ],
                       ),

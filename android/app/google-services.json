@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1001948251469",
+    "project_id": "ayo-sekolah-908f4",
+    "storage_bucket": "ayo-sekolah-908f4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1001948251469:android:1cf3c4254274837f0c2304",
+        "android_client_info": {
+          "package_name": "com.ayosekolah.ayo_sekolah"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNjHsQ1gJ_BIC6JcSrmILUNfkX1qgd_4E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

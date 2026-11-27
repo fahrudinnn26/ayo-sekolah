@@ -7,6 +7,7 @@ import 'package:ayo_sekolah/data/services/external_launcher_service.dart';
 import 'package:ayo_sekolah/data/services/sample_schools_data.dart';
 import 'package:ayo_sekolah/logic/providers/sandbox_provider.dart';
 import 'package:ayo_sekolah/logic/providers/school_provider.dart';
+import 'package:ayo_sekolah/presentation/widgets/cloud_status_badge.dart';
 import 'package:ayo_sekolah/presentation/widgets/sandbox_stepper_widget.dart';
 import 'package:ayo_sekolah/presentation/widgets/zonasi_badge.dart';
 import 'package:flutter/services.dart';
@@ -319,7 +320,8 @@ class TrackingSandboxScreenState extends State<TrackingSandboxScreen> {
           children: <Widget>[
             // 1. Banner Edukatif PPDB Sandbox
             _SandboxEducationalBanner(
-              isUsingLocalFallback: sandboxProvider.isUsingLocalFallback,
+              isCloudConnected: sandboxProvider.isCloudConnected,
+              projectId: sandboxProvider.firebaseProjectId,
             ),
             const SizedBox(height: 14),
 
@@ -397,10 +399,12 @@ class TrackingSandboxScreenState extends State<TrackingSandboxScreen> {
 
 class _SandboxEducationalBanner extends StatelessWidget {
   const _SandboxEducationalBanner({
-    required this.isUsingLocalFallback,
+    required this.isCloudConnected,
+    this.projectId,
   });
 
-  final bool isUsingLocalFallback;
+  final bool isCloudConnected;
+  final String? projectId;
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +441,7 @@ class _SandboxEducationalBanner extends StatelessWidget {
               children: <Widget>[
                 Wrap(
                   spacing: 8,
-                  runSpacing: 4,
+                  runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: <Widget>[
                     Text(
@@ -447,25 +451,11 @@ class _SandboxEducationalBanner extends StatelessWidget {
                         color: AppTheme.primaryDark,
                       ),
                     ),
-                    if (isUsingLocalFallback)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: const Text(
-                          'Mode Lokal',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.statusInfo,
-                          ),
-                        ),
-                      ),
+                    CloudStatusBadge(
+                      key: const Key('sandbox_cloud_status_badge'),
+                      isCloudConnected: isCloudConnected,
+                      projectId: projectId,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),

@@ -37,6 +37,12 @@ class SandboxProvider extends ChangeNotifier {
   /// Bernilai `true` apabila penyimpanan menggunakan mode fallback in-memory.
   bool get isUsingLocalFallback => _firestoreService.isUsingLocalFallback;
 
+  /// Bernilai `true` apabila penyimpanan aktif terhubung ke Cloud Firestore.
+  bool get isCloudConnected => _firestoreService.isCloudConnected;
+
+  /// Mengembalikan `projectId` Firebase aktif jika terhubung ke Cloud.
+  String? get firebaseProjectId => _firestoreService.firebaseProjectId;
+
   /// Memfilter daftar draf berdasarkan tahapan [statusSeleksi] (1–4).
   List<RegistrationDraftModel> draftsByStatus(int statusSeleksi) {
     return List<RegistrationDraftModel>.unmodifiable(

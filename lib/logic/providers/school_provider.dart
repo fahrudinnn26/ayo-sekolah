@@ -110,6 +110,12 @@ class SchoolProvider extends ChangeNotifier {
   /// Bernilai `true` apabila data sekolah bersumber dari fallback in-memory.
   bool get isUsingLocalFallback => _firestoreService.isUsingLocalFallback;
 
+  /// Bernilai `true` apabila layanan aktif terhubung ke Cloud Firestore.
+  bool get isCloudConnected => _firestoreService.isCloudConnected;
+
+  /// Mengembalikan `projectId` Firebase aktif jika terhubung ke Cloud.
+  String? get firebaseProjectId => _firestoreService.firebaseProjectId;
+
   /// Daftar sekolah yang dipilih untuk dikomparasi (maksimal 2 sekolah).
   List<SchoolModel> get comparedSchools =>
       List<SchoolModel>.unmodifiable(_comparedSchools);
