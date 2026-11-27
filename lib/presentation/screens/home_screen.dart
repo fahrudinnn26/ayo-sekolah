@@ -394,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       selectedJenjang: provider.selectedJenjang,
                       onResetFilters: () => _handleResetFilters(provider),
                     )
-                  else
+                  else ...<Widget>[
                     ...schools.map((SchoolModel school) {
                       final double jarakMeter =
                           provider.getDistanceMeters(school);
@@ -405,6 +405,33 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => _openSchoolDetail(school),
                       );
                     }),
+                    const Padding(
+                      key: Key('home_pilot_data_caption'),
+                      padding: EdgeInsets.only(top: 12, bottom: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 14,
+                            color: AppTheme.textSecondary,
+                          ),
+                          SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Data pilot sampel UTS • Verifikasi data riil pada tahap lanjutan',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

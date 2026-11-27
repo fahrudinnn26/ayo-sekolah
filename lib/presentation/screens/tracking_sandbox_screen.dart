@@ -315,8 +315,14 @@ class TrackingSandboxScreenState extends State<TrackingSandboxScreen> {
         color: AppTheme.primaryBlue,
         onRefresh: sandboxProvider.loadDrafts,
         child: ListView(
+          key: const Key('sandbox_draft_list_view'),
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            112 + MediaQuery.paddingOf(context).bottom,
+          ),
           children: <Widget>[
             // 1. Banner Edukatif PPDB Sandbox
             _SandboxEducationalBanner(

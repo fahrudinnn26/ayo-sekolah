@@ -1558,11 +1558,61 @@ class _AdvisorRecommendationCard extends StatelessWidget {
     }
   }
 
+  String _buildCompactConclusion(EvaluasiJalur? bestEval) {
+    if (bestEval != null && !bestEval.memenuhiSyarat) {
+      return 'Belum ada jalur yang memenuhi syarat; cek dokumen atau sekolah lain.';
+    }
+
+    switch (result.jalurTerbaik) {
+      case PpdbConstants.jalurZonasi:
+        switch (result.tingkatPeluang) {
+          case TingkatPeluang.tinggi:
+            return 'Prioritaskan jalur ini—domisili Anda berada di radius aman sekolah.';
+          case TingkatPeluang.sedang:
+            return 'Opsi terbaik saat ini, namun tetap waspadai persaingan jarak.';
+          case TingkatPeluang.rendah:
+            return 'Opsi paling memungkinkan; siapkan sekolah alternatif lebih dekat.';
+        }
+      case PpdbConstants.jalurPrestasi:
+        switch (result.tingkatPeluang) {
+          case TingkatPeluang.tinggi:
+            return 'Prioritaskan jalur ini—nilai rapor Anda sangat kompetitif.';
+          case TingkatPeluang.sedang:
+            return 'Opsi paling potensial dari nilai rapor saat ini; pantau persaingan.';
+          case TingkatPeluang.rendah:
+            return 'Opsi paling memungkinkan; pertimbangkan sekolah sesuai nilai rapor.';
+        }
+      case PpdbConstants.jalurAfirmasi:
+        switch (result.tingkatPeluang) {
+          case TingkatPeluang.tinggi:
+            return 'Prioritaskan jalur ini dengan memanfaatkan dokumen Afirmasi aktif.';
+          case TingkatPeluang.sedang:
+            return 'Dokumen Afirmasi memberi peluang terbaik pada kursi khusus.';
+          case TingkatPeluang.rendah:
+            return 'Opsi terbaik melalui kursi Afirmasi; pastikan berkas aktif lengkap.';
+        }
+      case PpdbConstants.jalurMutasi:
+        switch (result.tingkatPeluang) {
+          case TingkatPeluang.tinggi:
+            return 'Prioritaskan jalur ini dengan melampirkan SK pindah tugas orang tua.';
+          case TingkatPeluang.sedang:
+            return 'Opsi paling sesuai berkat dukungan surat mutasi resmi orang tua.';
+          case TingkatPeluang.rendah:
+            return 'Opsi terbaik melalui jalur Mutasi; perhatikan ketersediaan kuota.';
+        }
+      default:
+        return 'Opsi paling optimal berdasarkan profil calon siswa saat ini.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final Color fg = _peluangForeground(result.tingkatPeluang);
     final Color bg = _peluangBackground(result.tingkatPeluang);
+    final EvaluasiJalur? bestEval =
+        result.rincianJalur.isNotEmpty ? result.rincianJalur.first : null;
+    final bool isQualified = bestEval?.memenuhiSyarat ?? true;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -1599,10 +1649,11 @@ class _AdvisorRecommendationCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Kotak Rekomendasi Jalur Terbaik
+            // Kotak Ringkasan Rekomendasi Jalur Terbaik (padat & tidak duplikat)
             Container(
+              key: Key('advisor_summary_box_${school.idSchool}'),
               width: double.infinity,
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: BorderRadius.circular(12),
@@ -1611,22 +1662,24 @@ class _AdvisorRecommendationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      Icon(Icons.recommend_rounded, size: 20, color: fg),
-                      Text(
-                        'Rekomendasi Terbaik: Jalur ${result.jalurTerbaik}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                      Icon(Icons.recommend_rounded, size: 18, color: fg),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Rekomendasi Terbaik: Jalur ${result.jalurTerbaik}',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
+                          horizontal: 9,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
@@ -1634,7 +1687,9 @@ class _AdvisorRecommendationCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          'Peluang ${result.tingkatPeluang.label}',
+                          isQualified
+                              ? '${result.tingkatPeluang.label} • ${result.skorTerbaik.round()}%'
+                              : 'Belum Memenuhi',
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -1644,11 +1699,12 @@ class _AdvisorRecommendationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
-                    result.alasan,
-                    style: theme.textTheme.bodyMedium?.copyWith(
+                    _buildCompactConclusion(bestEval),
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -1750,7 +1806,7 @@ class _AdvisorRecommendationCard extends StatelessWidget {
                   onPressed: onStartSandbox,
                   icon: const Icon(Icons.assignment_turned_in_outlined),
                   label: Text(
-                    'Simulasi Jalur ${result.jalurTerbaik} di ${school.namaSekolah}',
+                    'Simulasi Jalur ${result.jalurTerbaik}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

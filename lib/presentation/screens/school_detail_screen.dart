@@ -7,6 +7,7 @@ import 'package:ayo_sekolah/data/services/external_launcher_service.dart';
 import 'package:ayo_sekolah/logic/providers/school_provider.dart';
 import 'package:ayo_sekolah/presentation/screens/tracking_sandbox_screen.dart';
 import 'package:ayo_sekolah/presentation/widgets/zonasi_badge.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -42,16 +43,132 @@ class _SchoolDetailScreenState extends State<SchoolDetailScreen> {
 
   Future<void> _handleOpenWhatsApp() async {
     if (_isLaunchingWa) return;
-    setState(() => _isLaunchingWa = true);
 
-    final ExternalLaunchResult result =
-        await widget.launcherService.contactSchoolCommittee(widget.school);
+    final String templateMessage =
+        widget.launcherService.buildSchoolCommitteeMessage(widget.school);
 
-    if (!mounted) return;
-    setState(() => _isLaunchingWa = false);
+    final String? action = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final ThemeData theme = Theme.of(dialogContext);
 
-    if (!result.success) {
-      _showSnackBar(result.message, isError: true);
+        return AlertDialog(
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
+          title: Row(
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.statusInfoBackground,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  size: 20,
+                  color: AppTheme.statusInfo,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Mode Pilot UTS'),
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                tooltip: 'Tutup dialog',
+                icon: const Icon(Icons.close_rounded, size: 20),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Aplikasi sedang berada di Mode Pilot UTS sehingga kontak '
+                  'panitia sekolah masih menggunakan data sampel. Agar tidak '
+                  'salah kirim ke nomor orang lain, WhatsApp akan dibuka tanpa '
+                  'nomor tujuan supaya Anda dapat memilih kontak uji coba '
+                  'sendiri dengan aman.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceBackground,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.dividerColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Template Pesan:',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: AppTheme.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        templateMessage,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            OutlinedButton.icon(
+              key: const Key('wa_pilot_copy_button'),
+              onPressed: () => Navigator.of(dialogContext).pop('copy'),
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              label: const Text('Salin Pesan'),
+            ),
+            FilledButton.icon(
+              key: const Key('wa_pilot_open_button'),
+              onPressed: () => Navigator.of(dialogContext).pop('open_wa'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.secondaryGreen,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.chat_rounded, size: 18),
+              label: const Text('Buka WhatsApp'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || action == null) return;
+
+    if (action == 'copy') {
+      await Clipboard.setData(ClipboardData(text: templateMessage));
+      if (!mounted) return;
+      _showSnackBar('Template pesan WhatsApp berhasil disalin ke clipboard.');
+      return;
+    }
+
+    if (action == 'open_wa') {
+      setState(() => _isLaunchingWa = true);
+
+      final ExternalLaunchResult result = await widget.launcherService
+          .openSchoolCommitteePilotWhatsApp(
+        widget.school,
+        customMessage: templateMessage,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLaunchingWa = false);
+
+      if (!result.success) {
+        _showSnackBar(result.message, isError: true);
+      }
     }
   }
 
@@ -378,6 +495,30 @@ class _SchoolDetailScreenState extends State<SchoolDetailScreen> {
                     )
                   : const Icon(Icons.open_in_new_rounded),
               label: const Text('Buka Portal Resmi PPDB'),
+            ),
+            const SizedBox(height: 16),
+            const Row(
+              key: Key('detail_pilot_data_caption'),
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: AppTheme.textSecondary,
+                ),
+                SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    'Data pilot sampel UTS • Verifikasi data riil pada tahap lanjutan',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

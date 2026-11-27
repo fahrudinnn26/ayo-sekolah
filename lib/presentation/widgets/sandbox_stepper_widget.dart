@@ -238,14 +238,15 @@ class SandboxStepperWidget extends StatelessWidget {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppTheme.statusAman,
                             side: const BorderSide(color: AppTheme.statusAman),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             minimumSize: const Size(
                               AppTheme.minTouchTargetSize,
                               AppTheme.minTouchTargetSize,
                             ),
                           ),
-                          icon: const Icon(Icons.replay_rounded, size: 18),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
                           label: const Text(
-                            'Simulasi Selesai • Ulangi',
+                            'Ulangi',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -257,6 +258,7 @@ class SandboxStepperWidget extends StatelessWidget {
                           style: FilledButton.styleFrom(
                             backgroundColor: AppTheme.secondaryGreen,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             minimumSize: const Size(
                               AppTheme.minTouchTargetSize,
                               AppTheme.minTouchTargetSize,

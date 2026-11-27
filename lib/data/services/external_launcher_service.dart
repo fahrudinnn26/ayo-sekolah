@@ -79,6 +79,44 @@ class ExternalLauncherService {
     return parsed;
   }
 
+  /// Menyusun template pesan WhatsApp untuk objek [SchoolModel].
+  String buildSchoolCommitteeMessage(
+    SchoolModel school, {
+    String? jalurPilihan,
+    String? customMessage,
+  }) {
+    if (customMessage != null && customMessage.trim().isNotEmpty) {
+      return customMessage.trim();
+    }
+    return buildWhatsAppMessage(
+      namaSekolah: school.namaSekolah,
+      jenjang: school.jenjang,
+      jalurPilihan: jalurPilihan,
+    );
+  }
+
+  /// Membentuk [Uri] aman `https://wa.me/?text=<pesan_terencode>` tanpa nomor
+  /// telepon tujuan untuk Mode Pilot UTS, sehingga pengguna/dosen dapat
+  /// memilih kontak uji coba sendiri di WhatsApp secara aman.
+  Uri buildWhatsAppShareUri({
+    required String namaSekolah,
+    String? jenjang,
+    String? jalurPilihan,
+    String? customMessage,
+  }) {
+    final String message =
+        (customMessage != null && customMessage.trim().isNotEmpty)
+            ? customMessage.trim()
+            : buildWhatsAppMessage(
+                namaSekolah: namaSekolah,
+                jenjang: jenjang,
+                jalurPilihan: jalurPilihan,
+              );
+
+    final String encodedText = Uri.encodeComponent(message);
+    return Uri.parse('https://wa.me/?text=$encodedText');
+  }
+
   /// Membentuk [Uri] `https://wa.me/...` lengkap dengan template pesan otomatis.
   Uri? buildWhatsAppUri({
     required String kontakWa,
@@ -194,17 +232,87 @@ class ExternalLauncherService {
     }
   }
 
+  /// Membuka WhatsApp dengan template pesan ter-encode tanpa nomor acak
+  /// (`https://wa.me/?text=<pesan_terencode>`) agar pengguna dapat memilih
+  /// kontak uji coba sendiri dengan aman pada Mode Pilot UTS.
+  Future<ExternalLaunchResult> openWhatsAppShare({
+    required String namaSekolah,
+    String? jenjang,
+    String? jalurPilihan,
+    String? customMessage,
+  }) async {
+    final Uri uri = buildWhatsAppShareUri(
+      namaSekolah: namaSekolah,
+      jenjang: jenjang,
+      jalurPilihan: jalurPilihan,
+      customMessage: customMessage,
+    );
+
+    try {
+      final bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (launched) {
+        return ExternalLaunchResult(
+          success: true,
+          message:
+              'Membuka WhatsApp agar Anda dapat memilih kontak uji coba untuk $namaSekolah.',
+          uri: uri,
+        );
+      }
+      return ExternalLaunchResult(
+        success: false,
+        message:
+            'Tidak dapat membuka aplikasi WhatsApp atau browser pada perangkat ini.',
+        uri: uri,
+      );
+    } catch (_) {
+      return ExternalLaunchResult(
+        success: false,
+        message: 'Terjadi kendala saat membuka WhatsApp.',
+        uri: uri,
+      );
+    }
+  }
+
   /// Helper praktis untuk membuka portal resmi PPDB dari objek [SchoolModel].
   Future<ExternalLaunchResult> openSchoolPortal(SchoolModel school) {
     return openPortalPpdb(school.urlPortalPpdb);
   }
 
-  /// Helper praktis untuk menghubungi panitia PPDB dari objek [SchoolModel].
-  Future<ExternalLaunchResult> contactSchoolCommittee(
+  /// Helper aman Mode Pilot UTS untuk membuka WhatsApp dengan template pesan
+  /// sekolah tanpa menyasar nomor acak (`https://wa.me/?text=...`).
+  Future<ExternalLaunchResult> openSchoolCommitteePilotWhatsApp(
     SchoolModel school, {
     String? jalurPilihan,
     String? customMessage,
   }) {
+    return openWhatsAppShare(
+      namaSekolah: school.namaSekolah,
+      jenjang: school.jenjang,
+      jalurPilihan: jalurPilihan,
+      customMessage: customMessage,
+    );
+  }
+
+  /// Helper praktis untuk menghubungi panitia PPDB dari objek [SchoolModel].
+  ///
+  /// Secara default [usePilotSafeMode] bernilai `true` agar tidak menghubungi
+  /// nomor sampel acak selama Mode Pilot UTS.
+  Future<ExternalLaunchResult> contactSchoolCommittee(
+    SchoolModel school, {
+    String? jalurPilihan,
+    String? customMessage,
+    bool usePilotSafeMode = true,
+  }) {
+    if (usePilotSafeMode) {
+      return openSchoolCommitteePilotWhatsApp(
+        school,
+        jalurPilihan: jalurPilihan,
+        customMessage: customMessage,
+      );
+    }
     return openWhatsAppPanitia(
       kontakWa: school.kontakWa,
       namaSekolah: school.namaSekolah,

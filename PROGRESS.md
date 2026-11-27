@@ -11,8 +11,9 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 - [x] **Tahap 3: Konfigurasi `main.dart`, Navigasi Utama, Reusable Widgets, Layar Beranda & Radar Sekolah, & Detail Profil Sekolah** (Selesai)
 - [x] **Tahap 4: Layar Komparasi & Smart Pathway Advisor, Progress Stepper, Layar PPDB Sandbox (CRUD Penuh), & Integrasi Navigasi Antar Layar** (Selesai)
 - [x] **Tahap 5: Integrasi Gradle Firebase Android, Seeding Otomatis Cloud Firestore, & Indikator Status Koneksi Cloud** (Selesai)
+- [x] **Tahap 6: Hotfix UTS — Perbaikan UI/UX, Pemangkasan Teks Duplikat, Pengamanan Demo WhatsApp, & Label Transparansi Pilot** (Selesai)
 
-> **Catatan Progres Tahap 5:** File `android/app/google-services.json` (`com.ayosekolah.ayo_sekolah`, project `ayo-sekolah-908f4`) telah terintegrasi penuh melalui plugin Gradle Google Services (`4.4.4`), `minSdk` disesuaikan ke `24` sesuai persyaratan `firebase_core` & `cloud_firestore`, seeding otomatis 10 sekolah Bandar Lampung ke koleksi `schools` telah diperkuat, dan indikator status koneksi (`Cloud Terhubung` hijau / `Mode Lokal` abu-abu) telah dipasang di Beranda & PPDB Sandbox.
+> **Catatan Progres Tahap 6 (Hotfix UTS):** Seluruh perbaikan siap rilis Beta UTS telah diselesaikan: ruang bawah `ListView` PPDB Sandbox diperlebar (`>= 112dp + safe area bottom`) agar FAB **"+ Simulasi Baru"** tidak lagi menimpa tombol **"Buka Portal Resmi PPDB"**, label tombol tahap 4 stepper dipersingkat menjadi **"Ulangi"** dengan ikon refresh, kotak ringkasan **Smart Multi-Pathway Advisor** dipadatkan (judul jalur terbaik, badge persentase peluang, 1 kalimat kesimpulan non-duplikat) dengan tombol ringkas **"Simulasi Jalur \<Jalur\>"**, fitur **"Chat WA Panitia"** diamankan lewat dialog konfirmasi **Mode Pilot UTS** (**Salin Pesan** & **Buka WhatsApp** ke `https://wa.me/?text=...` tanpa nomor acak), serta label transparansi data sampel pilot ditambahkan di Beranda & Detail Sekolah.
 
 ---
 
@@ -186,6 +187,39 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 
 ---
 
+## Rincian Pekerjaan Tahap 6 (Hotfix UTS)
+
+### 1. Perbaikan FAB Menimpa Tombol di PPDB Sandbox
+- **`lib/presentation/screens/tracking_sandbox_screen.dart`** *(Dimodifikasi)*
+  - Memperbarui padding bawah `ListView` daftar draf simulasi (`sandbox_draft_list_view`) menjadi `EdgeInsets.fromLTRB(16, 16, 16, 112 + MediaQuery.paddingOf(context).bottom)` agar saat di-scroll hingga paling bawah, tombol melayang **"+ Simulasi Baru"** tidak menimpa tombol **"Buka Portal Resmi PPDB"**.
+
+### 2. Perbaikan Teks Tombol Terpotong (`...`)
+- **`lib/presentation/widgets/sandbox_stepper_widget.dart`** *(Dimodifikasi)*
+  - Mengubah label tombol saat tahap 4 selesai menjadi teks ringkas **"Ulangi"** dengan ikon refresh (`Icons.refresh_rounded`) serta merapikan padding horizontal tombol stepper (`12dp`) agar tidak terpotong di layar ponsel.
+- **`lib/presentation/screens/compare_advisor_screen.dart`** *(Dimodifikasi)*
+  - Mempersingkat tombol aksi simulasi pada kartu rekomendasi menjadi **`"Simulasi Jalur ${result.jalurTerbaik}"`** (misal `"Simulasi Jalur Zonasi"`) tanpa mengulang nama panjang sekolah sehingga seluruh label tombol terbaca utuh.
+
+### 3. Pemangkasan Teks Duplikat di Smart Multi-Pathway Advisor
+- **`lib/presentation/screens/compare_advisor_screen.dart`** *(Dimodifikasi)*
+  - Memadatkan kotak ringkasan rekomendasi utama di bagian atas kartu advisor agar hanya menampilkan judul jalur terbaik, badge kategori & persentase peluang (`Tinggi • 94%`), serta 1 kalimat kesimpulan singkat yang tidak mengulang teks penjelasan pada kartu rincian 4 jalur di bawahnya.
+
+### 4. Pengamanan Fitur "Chat WA Panitia" (Mode Pilot UTS)
+- **`lib/data/services/external_launcher_service.dart`** *(Dimodifikasi)*
+  - Menambahkan `buildSchoolCommitteeMessage`, `buildWhatsAppShareUri` (membentuk tautan aman `https://wa.me/?text=<pesan_terencode>` tanpa nomor acak), `openWhatsAppShare`, dan `openSchoolCommitteePilotWhatsApp`.
+  - Mengamankan `contactSchoolCommittee` dengan mode default `usePilotSafeMode = true`.
+- **`lib/presentation/screens/school_detail_screen.dart`** *(Dimodifikasi)*
+  - Menampilkan dialog konfirmasi **"Mode Pilot UTS"** saat tombol **"Chat WA Panitia"** ditekan, menjelaskan bahwa kontak sekolah masih berupa data sampel, menampilkan pratinjau template pesan, serta menyediakan 2 tombol aksi: **"Salin Pesan"** (ke clipboard) dan **"Buka WhatsApp"** (`https://wa.me/?text=<pesan_terencode>` agar pengguna/dosen memilih kontak uji coba sendiri dengan aman).
+
+### 5. Label Transparansi Data Pilot
+- **`lib/presentation/screens/home_screen.dart` & `lib/presentation/screens/school_detail_screen.dart`** *(Dimodifikasi)*
+  - Menambahkan caption singkat yang rapi bertuliskan **`"Data pilot sampel UTS • Verifikasi data riil pada tahap lanjutan"`** di bagian bawah daftar sekolah pada halaman Beranda serta di bagian bawah halaman Detail Profil Sekolah.
+
+### 6. Pengujian Hotfix UTS
+- **`test/widget_test.dart`** *(Dimodifikasi)*
+  - Menambahkan pengujian terdedikasi untuk memastikan FAB Sandbox tidak menimpa tombol portal, tombol tahap 4 stepper menampilkan `"Ulangi"` + ikon refresh, ringkasan Smart Advisor padat tanpa duplikasi teks dengan tombol `"Simulasi Jalur ..."`, dialog Mode Pilot UTS WhatsApp & URI `https://wa.me/?text=...` tanpa nomor acak, serta kemunculan label transparansi data pilot.
+
+---
+
 ## Daftar File Baru & Termodifikasi
 
 | Tahap | Status | Path File | Deskripsi |
@@ -196,7 +230,7 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 1 | Baru | `lib/core/constants/ppdb_constants.dart` | Aturan jarak zonasi, jalur PPDB, status seleksi, & koordinat fallback Bandar Lampung |
 | Tahap 1 | Baru | `lib/data/models/school_model.dart` | Model data sekolah + serialisasi Firestore |
 | Tahap 1 | Baru | `lib/data/models/registration_draft_model.dart` | Model data draf pendaftaran simulasi + serialisasi Firestore |
-| Tahap 1–5 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek Tahap 1–5 |
+| Tahap 1–6 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek Tahap 1–6 (termasuk Hotfix UTS) |
 | Tahap 2 | Baru | `lib/core/utils/haversine_calculator.dart` | Perhitungan jarak Haversine (meter/km) & evaluasi status zonasi |
 | Tahap 2 | Baru | `lib/core/utils/smart_pathway_advisor.dart` | Algoritma rekomendasi 4 jalur PPDB & rincian peluang Bahasa Indonesia |
 | Tahap 2 | Baru | `lib/data/services/sample_schools_data.dart` | 10 data sampel sekolah negeri Bandar Lampung (SD/SMP/SMA/SMK) |
@@ -229,9 +263,17 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 5 | Dimodifikasi | `lib/presentation/screens/home_screen.dart` | Menampilkan `CloudStatusBadge` pada header lokasi aktif di Beranda |
 | Tahap 5 | Dimodifikasi | `lib/presentation/screens/tracking_sandbox_screen.dart` | Menampilkan `CloudStatusBadge` pada banner edukatif PPDB Sandbox |
 | Tahap 5 | Dimodifikasi | `test/widget_test.dart` | Verifikasi `CloudStatusBadge` untuk mode lokal dan mode cloud terhubung |
+| Tahap 6 | Dimodifikasi | `lib/presentation/screens/tracking_sandbox_screen.dart` | Menambah clearance padding bawah `ListView` (`112 + safe area`) agar FAB tidak menimpa tombol portal |
+| Tahap 6 | Dimodifikasi | `lib/presentation/widgets/sandbox_stepper_widget.dart` | Mengubah tombol selesai tahap 4 menjadi `"Ulangi"` dengan ikon `Icons.refresh_rounded` |
+| Tahap 6 | Dimodifikasi | `lib/presentation/screens/compare_advisor_screen.dart` | Memadatkan kotak ringkasan rekomendasi (persentase + 1 kalimat unik) & tombol `"Simulasi Jalur <Jalur>"` |
+| Tahap 6 | Dimodifikasi | `lib/data/services/external_launcher_service.dart` | Menambahkan tautan aman `https://wa.me/?text=<encoded>` tanpa nomor acak untuk Mode Pilot UTS |
+| Tahap 6 | Dimodifikasi | `lib/presentation/screens/school_detail_screen.dart` | Dialog konfirmasi Mode Pilot UTS (Salin Pesan & Buka WhatsApp) + label transparansi data pilot |
+| Tahap 6 | Dimodifikasi | `lib/presentation/screens/home_screen.dart` | Menambahkan label transparansi `"Data pilot sampel UTS • Verifikasi data riil pada tahap lanjutan"` |
+| Tahap 6 | Dimodifikasi | `test/widget_test.dart` | Menambahkan verifikasi unit & widget untuk seluruh 5 perbaikan Hotfix UTS |
 
 ---
 
 ## Verifikasi
 
 - Analisis statis dijalankan dengan `flutter analyze` untuk memastikan 0 error dan 0 warning pada seluruh file proyek.
+- Pengujian otomatis dijalankan dengan `flutter test` untuk memverifikasi seluruh alur aplikasi dan 5 perbaikan Hotfix UTS lulus 100%.
