@@ -1,9 +1,11 @@
 import 'package:ayo_sekolah/core/constants/app_theme.dart';
 import 'package:ayo_sekolah/core/constants/ppdb_constants.dart';
 import 'package:ayo_sekolah/core/utils/haversine_calculator.dart';
+import 'package:ayo_sekolah/data/models/registration_draft_model.dart';
 import 'package:ayo_sekolah/data/models/school_model.dart';
 import 'package:ayo_sekolah/data/services/external_launcher_service.dart';
 import 'package:ayo_sekolah/logic/providers/school_provider.dart';
+import 'package:ayo_sekolah/presentation/screens/tracking_sandbox_screen.dart';
 import 'package:ayo_sekolah/presentation/widgets/zonasi_badge.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -68,16 +70,21 @@ class _SchoolDetailScreenState extends State<SchoolDetailScreen> {
     }
   }
 
-  void _handleStartSandboxSimulation() {
+  Future<void> _handleStartSandboxSimulation() async {
     if (widget.onStartSandboxSimulation != null) {
       Navigator.of(context).pop();
       widget.onStartSandboxSimulation!(widget.school);
       return;
     }
 
+    final RegistrationDraftModel? savedDraft = await showSandboxDraftFormSheet(
+      context,
+      preselectedSchool: widget.school,
+    );
+    if (!mounted || savedDraft == null) return;
+
     _showSnackBar(
-      'Simulasi pendaftaran untuk ${widget.school.namaSekolah} dapat '
-      'dilanjutkan pada tab PPDB Sandbox (Tahap 4).',
+      'Draf simulasi untuk ${savedDraft.namaSekolah} berhasil disimpan di PPDB Sandbox.',
     );
   }
 

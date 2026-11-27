@@ -9,9 +9,9 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 - [x] **Tahap 1: Konfigurasi Android, Konstanta, & Model Data** (Selesai)
 - [x] **Tahap 2: Logika Inti, Services, Data Sampel Sekolah Bandar Lampung, & State Provider** (Selesai)
 - [x] **Tahap 3: Konfigurasi `main.dart`, Navigasi Utama, Reusable Widgets, Layar Beranda & Radar Sekolah, & Detail Profil Sekolah** (Selesai)
-- [ ] **Tahap 4:** Halaman Komparasi & Smart Advisor serta Halaman Simulasi PPDB Sandbox
+- [x] **Tahap 4: Layar Komparasi & Smart Pathway Advisor, Progress Stepper, Layar PPDB Sandbox (CRUD Penuh), & Integrasi Navigasi Antar Layar** (Selesai)
 
-> **Catatan Progres Tahap 3:** Tab Komparasi dan PPDB Sandbox saat ini menggunakan placeholder rapi yang akan diimplementasikan penuh pada Tahap 4.
+> **Catatan Progres Tahap 4:** Seluruh 4 layar utama beserta alur integrasi antar layar (Beranda -> Komparasi, Detail Sekolah -> Simulasi PPDB Sandbox pre-selected, serta Advisor -> Simulasi Sandbox) telah diimplementasikan penuh dan terverifikasi tanpa error maupun warning.
 
 ---
 
@@ -113,6 +113,43 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 
 ---
 
+## Rincian Pekerjaan Tahap 4
+
+### 1. Layar 3 — Komparasi Sekolah & Smart Pathway Advisor
+- **`lib/presentation/screens/compare_advisor_screen.dart`** *(Baru)*
+  - **Bagian Komparasi Side-by-Side:** Mengambil maksimal 2 sekolah terpilih dari `SchoolProvider`. Menampilkan empty state informatif saat 0 atau baru 1 sekolah dipilih, lengkap dengan tombol untuk memilih sekolah melalui `ModalBottomSheet` (berfitur pencarian dan urutan jarak terdekat) atau kembali ke Beranda.
+  - Membandingkan berdampingan: **Akreditasi**, **Jarak Haversine & `ZonasiBadge`**, **Passing Grade**, **Total Kuota & rincian kuota 4 jalur (`Zonasi`, `Prestasi`, `Afirmasi`, `Mutasi`)**, serta **jumlah & ringkasan fasilitas** dengan penanda visual warna hijau (`AppTheme.statusAman` / `AppTheme.statusAmanBackground`) pada nilai yang lebih unggul, disertai tombol **Ganti** dan **Hapus** untuk setiap slot sekolah.
+  - **Bagian Smart Multi-Pathway Advisor (Interaktif):** Form input ringkas dengan `Slider` + `TextField` tersinkronisasi untuk **Rata-Rata Nilai Rapor (0–100)**, `SwitchListTile` kepemilikan **Dokumen Afirmasi (KIP/PKH/DTKS)**, dan `SwitchListTile` kepemilikan **Surat Mutasi/Perpindahan Tugas Orang Tua**.
+  - Mengevaluasi otomatis menggunakan `SmartPathwayAdvisor` untuk seluruh sekolah yang sedang dikomparasi (atau menyediakan dropdown pilih sekolah apabila daftar komparasi kosong), menampilkan kartu rekomendasi jalur terbaik, badge tingkat peluang (**Tinggi/Sedang/Rendah**), penjelasan alasan, rincian peluang 4 jalur, serta tombol pintas simulasi ke PPDB Sandbox.
+- **`lib/logic/providers/school_provider.dart`** *(Dimodifikasi)*
+  - Menambahkan helper `replaceComparedSchool(oldIdSchool, newSchool)` untuk mengganti sekolah pada slot komparasi tertentu tanpa mengubah urutan tampilan kiri-kanan.
+
+### 2. Widget Progress Stepper 4 Tahap
+- **`lib/presentation/widgets/sandbox_stepper_widget.dart`** *(Baru)*
+  - Komponen horizontal stepper 4 tahap sesuai `statusSeleksi` pada `RegistrationDraftModel` (`1`: Draf Tersimpan, `2`: Kelengkapan Berkas, `3`: Siap Verifikasi, `4`: Terkirim Simulasi).
+  - Dilengkapi indikator progres visual, keterangan tahapan aktif, ketukan langsung pada node tahapan, serta tombol aksi interaktif untuk menaikkan, memundurkan, atau mengulang tahap seleksi.
+
+### 3. Layar 4 — PPDB Sandbox & Simulasi Pendaftaran (CRUD Penuh)
+- **`lib/presentation/screens/tracking_sandbox_screen.dart`** *(Baru)*
+  - **Banner Edukatif:** Menegaskan bahwa fitur ini adalah **PPDB Sandbox (Simulasi Mandiri)** untuk latihan dan cek kesiapan berkas, bukan portal pendaftaran resmi pemerintah.
+  - **Manajemen Draf CRUD Penuh (`SandboxProvider`):**
+    - **Read:** Daftar kartu draf simulasi menampilkan nama siswa, NISN, sekolah tujuan, jalur pilihan, jarak (`ZonasiBadge`), rata-rata nilai rapor, `SandboxStepperWidget`, **checklist kesiapan berkas dinamis** sesuai jalur pilihan (`Zonasi`/`Prestasi`/`Afirmasi`/`Mutasi`), tombol **Edit**, tombol **Hapus** dengan `AlertDialog` konfirmasi, serta tombol pintas **"Buka Portal Resmi PPDB"** (`ExternalLauncherService`).
+    - **Create & Update:** `FloatingActionButton.extended` ("Simulasi Baru") dan tombol Edit membuka modal formulir terpadu (`showSandboxDraftFormSheet`) dengan dropdown pilih sekolah dari `SchoolProvider`, input Nama Siswa, input NISN bervalidasi tepat **10 digit angka**, pilihan Jalur PPDB beserta informasi kuota jalur, input Rata-Rata Nilai Rapor (0–100), serta perhitungan otomatis `jarakMeter` secara langsung dari lokasi aktif user.
+    - **Delete:** Konfirmasi dialog sebelum menghapus draf melalui `SandboxProvider.deleteDraft`.
+
+### 4. Integrasi Navigasi & Alur Antar Layar
+- **`lib/presentation/screens/main_navigation_screen.dart`** *(Dimodifikasi)*
+  - Menghapus seluruh placeholder Tahap 4; Tab 2 kini menampilkan `CompareAdvisorScreen` dan Tab 3 menampilkan `TrackingSandboxScreen` (dengan badge jumlah draf pada `NavigationBar`).
+  - Menghubungkan alur lintas layar: banner **"Bandingkan"** pada `HomeScreen` langsung berpindah ke Tab 2 (Komparasi), dan tombol simulasi dari `SchoolDetailScreen` maupun `CompareAdvisorScreen` langsung berpindah ke Tab 3 dan membuka formulir pembuatan draf dengan sekolah otomatis terpilih (*pre-selected*).
+- **`lib/presentation/screens/school_detail_screen.dart`** *(Dimodifikasi)*
+  - Menghubungkan tombol **"Simulasi Daftar di Sekolah Ini"** ke callback navigasi sandbox dan fallback langsung `showSandboxDraftFormSheet(preselectedSchool: widget.school)` sehingga form pembuatan simulasi langsung terbuka dengan sekolah tersebut otomatis terpilih.
+
+### 5. Pengujian Widget Terintegrasi
+- **`test/widget_test.dart`** *(Dimodifikasi)*
+  - Memperluas widget test end-to-end mencakup alur Beranda, pemilihan sekolah komparasi via banner & `ModalBottomSheet`, verifikasi komparasi side-by-side & Smart Advisor, perpindahan dari Detail Sekolah ke form Sandbox *pre-selected*, validasi NISN 10 digit, CRUD lengkap (Create, Read, Update, Delete), serta interaksi `SandboxStepperWidget`.
+
+---
+
 ## Daftar File Baru & Termodifikasi
 
 | Tahap | Status | Path File | Deskripsi |
@@ -123,7 +160,7 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 1 | Baru | `lib/core/constants/ppdb_constants.dart` | Aturan jarak zonasi, jalur PPDB, status seleksi, & koordinat fallback Bandar Lampung |
 | Tahap 1 | Baru | `lib/data/models/school_model.dart` | Model data sekolah + serialisasi Firestore |
 | Tahap 1 | Baru | `lib/data/models/registration_draft_model.dart` | Model data draf pendaftaran simulasi + serialisasi Firestore |
-| Tahap 1–3 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek |
+| Tahap 1–4 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek Tahap 1–4 |
 | Tahap 2 | Baru | `lib/core/utils/haversine_calculator.dart` | Perhitungan jarak Haversine (meter/km) & evaluasi status zonasi |
 | Tahap 2 | Baru | `lib/core/utils/smart_pathway_advisor.dart` | Algoritma rekomendasi 4 jalur PPDB & rincian peluang Bahasa Indonesia |
 | Tahap 2 | Baru | `lib/data/services/sample_schools_data.dart` | 10 data sampel sekolah negeri Bandar Lampung (SD/SMP/SMA/SMK) |
@@ -139,6 +176,13 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 3 | Baru | `lib/presentation/screens/home_screen.dart` | Layar 1: Beranda & Radar Sekolah (lokasi GPS/fallback, search, filter jenjang, banner komparasi) |
 | Tahap 3 | Baru | `lib/presentation/screens/school_detail_screen.dart` | Layar 2: Detail Profil Sekolah (profil, kuota per jalur, fasilitas, & aksi WA/Portal/Simulasi) |
 | Tahap 3 | Dimodifikasi | `test/widget_test.dart` | Smoke test `AyoSekolahApp` dengan mode fallback lokal & navigasi 3 tab |
+| Tahap 4 | Dimodifikasi | `lib/logic/providers/school_provider.dart` | Menambahkan helper `replaceComparedSchool` untuk mengganti slot sekolah komparasi |
+| Tahap 4 | Baru | `lib/presentation/screens/compare_advisor_screen.dart` | Layar 3: Komparasi side-by-side maks. 2 sekolah & Smart Multi-Pathway Advisor interaktif |
+| Tahap 4 | Baru | `lib/presentation/widgets/sandbox_stepper_widget.dart` | Widget progress stepper 4 tahap interaktif untuk status seleksi simulasi PPDB |
+| Tahap 4 | Baru | `lib/presentation/screens/tracking_sandbox_screen.dart` | Layar 4: PPDB Sandbox CRUD penuh, banner edukatif, checklist berkas dinamis, & portal resmi |
+| Tahap 4 | Dimodifikasi | `lib/presentation/screens/main_navigation_screen.dart` | Integrasi Tab 2 (`CompareAdvisorScreen`), Tab 3 (`TrackingSandboxScreen`), & alur lintas layar |
+| Tahap 4 | Dimodifikasi | `lib/presentation/screens/school_detail_screen.dart` | Integrasi tombol "Simulasi Daftar di Sekolah Ini" membuka form Sandbox dengan sekolah pre-selected |
+| Tahap 4 | Dimodifikasi | `test/widget_test.dart` | Widget test end-to-end Tahap 1–4 (Komparasi, Smart Advisor, Validasi NISN, CRUD Sandbox, Stepper) |
 
 ---
 

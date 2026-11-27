@@ -287,6 +287,25 @@ class SchoolProvider extends ChangeNotifier {
     return true;
   }
 
+  /// Mengganti sekolah dengan [oldIdSchool] pada daftar komparasi dengan
+  /// [newSchool] tanpa mengubah urutan slotnya. Mengembalikan `false` jika
+  /// [newSchool] sudah berada di slot komparasi lain.
+  bool replaceComparedSchool(String oldIdSchool, SchoolModel newSchool) {
+    if (oldIdSchool == newSchool.idSchool) return true;
+    if (isSchoolCompared(newSchool.idSchool)) return false;
+
+    final int index = _comparedSchools.indexWhere(
+      (SchoolModel item) => item.idSchool == oldIdSchool,
+    );
+    if (index < 0) {
+      return addSchoolToCompare(newSchool);
+    }
+
+    _comparedSchools[index] = newSchool;
+    notifyListeners();
+    return true;
+  }
+
   /// Menghapus sekolah berdasarkan [idSchool] dari daftar komparasi.
   void removeSchoolFromCompare(String idSchool) {
     final int beforeLength = _comparedSchools.length;
