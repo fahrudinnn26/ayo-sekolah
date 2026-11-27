@@ -8,9 +8,10 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 
 - [x] **Tahap 1: Konfigurasi Android, Konstanta, & Model Data** (Selesai)
 - [x] **Tahap 2: Logika Inti, Services, Data Sampel Sekolah Bandar Lampung, & State Provider** (Selesai)
-- [ ] **Tahap 3:** Integrasi Firebase & UI Halaman (Direktori, Rekomendasi Jalur, Simulasi PPDB Sandbox)
+- [x] **Tahap 3: Konfigurasi `main.dart`, Navigasi Utama, Reusable Widgets, Layar Beranda & Radar Sekolah, & Detail Profil Sekolah** (Selesai)
+- [ ] **Tahap 4:** Halaman Komparasi & Smart Advisor serta Halaman Simulasi PPDB Sandbox
 
-> **Catatan Batasan Tahap 1 & 2:** `lib/main.dart` dan halaman UI belum diubah/dibuat hingga Tahap 2 selesai.
+> **Catatan Progres Tahap 3:** Tab Komparasi dan PPDB Sandbox saat ini menggunakan placeholder rapi yang akan diimplementasikan penuh pada Tahap 4.
 
 ---
 
@@ -74,6 +75,44 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 
 ---
 
+## Rincian Pekerjaan Tahap 3
+
+### 1. Konfigurasi Entrypoint & Shell Navigasi Utama
+- **`lib/main.dart`** *(Dimodifikasi)*
+  - Menambahkan inisialisasi Firebase secara aman di dalam blok `try-catch` (`Firebase.initializeApp()`), sehingga aplikasi tidak crash jika `google-services.json` belum terpasang dan otomatis berjalan menggunakan fallback lokal in-memory di `FirestoreService`.
+  - Membungkus aplikasi (`AyoSekolahApp`) dengan `MultiProvider` (`FirestoreService`, `SchoolProvider`, dan `SandboxProvider`) serta menerapkan tema `AppTheme.lightTheme`.
+- **`lib/presentation/screens/main_navigation_screen.dart`** *(Baru)*
+  - Menyediakan shell navigasi Material Design 3 (`NavigationBar`) dengan 3 tab utama menggunakan `IndexedStack`:
+    - Tab 1: **Beranda** (`HomeScreen`).
+    - Tab 2: **Komparasi** (placeholder rapi bertuliskan *"Halaman Komparasi & Smart Advisor - Tahap 4"*, lengkap dengan badge jumlah sekolah terpilih).
+    - Tab 3: **PPDB Sandbox** (placeholder rapi bertuliskan *"Halaman Simulasi PPDB Sandbox - Tahap 4"*).
+  - Menginisialisasi data sekolah dan draf simulasi secara aman melalui `WidgetsBinding.instance.addPostFrameCallback`.
+
+### 2. Komponen Reusable (`lib/presentation/widgets/`)
+- **`lib/presentation/widgets/zonasi_badge.dart`** *(Baru)*
+  - Badge indikator status zonasi berbasis warna semantik (`<= 800 m` Hijau *Sangat Aman*, `801–1500 m` Oranye/Kuning *Waspada*, `> 1500 m` Merah *Berisiko*) lengkap dengan ikon status dan jarak Haversine terformat (`m`/`km`).
+- **`lib/presentation/widgets/school_card.dart`** *(Baru)*
+  - Kartu sekolah Material 3 menampilkan badge jenjang/status/akreditasi, nama sekolah, ringkasan alamat posko, `ZonasiBadge`, total kuota & passing grade, serta tombol toggle **"Bandingkan"** (minimal 48dp) yang terhubung ke batas komparasi maks. 2 sekolah di `SchoolProvider`.
+
+### 3. Layar 1 — Beranda & Radar Sekolah (`lib/presentation/screens/home_screen.dart`)
+- **`lib/presentation/screens/home_screen.dart`** *(Baru)*
+  - Header lokasi aktif menampilkan status titik acuan (**GPS Aktif** atau **Fallback Kecamatan Bandar Lampung**) disertai tombol **"Pilih Kecamatan"** (membuka `ModalBottomSheet` seluruh kecamatan fallback dari `PpdbConstants`) dan **"Refresh GPS"**.
+  - Search bar pencarian nama/wilayah sekolah serta deretan `ChoiceChip` filter jenjang (`Semua`, `SD`, `SMP`, `SMA`, `SMK`).
+  - Daftar `SchoolCard` terurut otomatis dari jarak terdekat via `SchoolProvider`, mendukung *pull-to-refresh* (`RefreshIndicator`), state loading/error, serta tampilan ramah saat pencarian kosong lengkap dengan tombol reset filter.
+  - Banner ringkas komparasi di bagian bawah yang muncul otomatis saat 1–2 sekolah dipilih untuk langsung berpindah ke tab Komparasi.
+
+### 4. Layar 2 — Detail Profil Sekolah (`lib/presentation/screens/school_detail_screen.dart`)
+- **`lib/presentation/screens/school_detail_screen.dart`** *(Baru)*
+  - Menampilkan profil lengkap sekolah: nama, badge jenjang/status/akreditasi, `ZonasiBadge`, jarak garis lurus Haversine terhadap lokasi aktif, passing grade, total kuota, serta kartu alamat posko verifikasi beserta koordinat.
+  - Grid kartu 2x2 responsif untuk rincian alokasi kuota 4 jalur PPDB (`Zonasi`, `Prestasi`, `Afirmasi`, `Mutasi`) beserta persentase dan indikator progres, serta daftar fasilitas sekolah menggunakan `Wrap`.
+  - Tombol aksi utama bertarget sentuh >= 48dp (52dp): **"Simulasi Daftar di Sekolah Ini"** (mengarahkan ke tab PPDB Sandbox + SnackBar), **"Chat WA Panitia"** (`ExternalLauncherService`), dan **"Buka Portal Resmi PPDB"** (`ExternalLauncherService`).
+
+### 5. Pengujian Widget
+- **`test/widget_test.dart`** *(Dimodifikasi)*
+  - Memperbarui smoke test untuk memverifikasi `AyoSekolahApp` berjalan aman pada mode fallback lokal dan dapat berpindah antar 3 tab navigasi Material 3.
+
+---
+
 ## Daftar File Baru & Termodifikasi
 
 | Tahap | Status | Path File | Deskripsi |
@@ -84,7 +123,7 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 1 | Baru | `lib/core/constants/ppdb_constants.dart` | Aturan jarak zonasi, jalur PPDB, status seleksi, & koordinat fallback Bandar Lampung |
 | Tahap 1 | Baru | `lib/data/models/school_model.dart` | Model data sekolah + serialisasi Firestore |
 | Tahap 1 | Baru | `lib/data/models/registration_draft_model.dart` | Model data draf pendaftaran simulasi + serialisasi Firestore |
-| Tahap 1 & 2 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek |
+| Tahap 1–3 | Diperbarui | `PROGRESS.md` | Dokumentasi ringkasan progres proyek |
 | Tahap 2 | Baru | `lib/core/utils/haversine_calculator.dart` | Perhitungan jarak Haversine (meter/km) & evaluasi status zonasi |
 | Tahap 2 | Baru | `lib/core/utils/smart_pathway_advisor.dart` | Algoritma rekomendasi 4 jalur PPDB & rincian peluang Bahasa Indonesia |
 | Tahap 2 | Baru | `lib/data/services/sample_schools_data.dart` | 10 data sampel sekolah negeri Bandar Lampung (SD/SMP/SMA/SMK) |
@@ -93,6 +132,13 @@ Aplikasi Flutter **Ayo Sekolah** (Direktori Sekolah, Rekomendasi Jalur, dan Simu
 | Tahap 2 | Baru | `lib/data/services/firestore_service.dart` | Layanan CRUD Firestore (`schools` & `ppdb_registrations`) + fallback in-memory |
 | Tahap 2 | Baru | `lib/logic/providers/school_provider.dart` | State provider daftar sekolah, filter, lokasi, pengurutan jarak, & komparasi (maks. 2) |
 | Tahap 2 | Baru | `lib/logic/providers/sandbox_provider.dart` | State provider CRUD draf simulasi pendaftaran PPDB Sandbox |
+| Tahap 3 | Dimodifikasi | `lib/main.dart` | Entrypoint aman Firebase `try-catch`, `MultiProvider`, & `AppTheme.lightTheme` |
+| Tahap 3 | Baru | `lib/presentation/screens/main_navigation_screen.dart` | Shell navigasi Bottom Navigation Bar Material 3 (Beranda, Komparasi, PPDB Sandbox) |
+| Tahap 3 | Baru | `lib/presentation/widgets/zonasi_badge.dart` | Badge status zonasi berbasis warna & jarak Haversine terformat |
+| Tahap 3 | Baru | `lib/presentation/widgets/school_card.dart` | Kartu sekolah Material 3 + tombol toggle "Bandingkan" terhubung ke `SchoolProvider` |
+| Tahap 3 | Baru | `lib/presentation/screens/home_screen.dart` | Layar 1: Beranda & Radar Sekolah (lokasi GPS/fallback, search, filter jenjang, banner komparasi) |
+| Tahap 3 | Baru | `lib/presentation/screens/school_detail_screen.dart` | Layar 2: Detail Profil Sekolah (profil, kuota per jalur, fasilitas, & aksi WA/Portal/Simulasi) |
+| Tahap 3 | Dimodifikasi | `test/widget_test.dart` | Smoke test `AyoSekolahApp` dengan mode fallback lokal & navigasi 3 tab |
 
 ---
 
